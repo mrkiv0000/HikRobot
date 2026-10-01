@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.tmp/
+.venv/
+venv/
+.idea/
+.vscode/
+config/settings.json
+config/settings.json.tmp

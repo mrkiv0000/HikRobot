@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hikrobot — подключение камер</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/stage2.css">
+</head>
+<body>
+  <header>
+    <div class="brand">HIKROBOT <span>Контроль кодов на конвейере</span></div>
+    <span class="stage">Этап 3 · контроль цикла</span>
+  </header>
+
+  <div id="global-error" class="global-error" role="alert" hidden></div>
+
+  <div class="shell">
+    <aside class="sidebar" aria-label="Статусы подключения камер">
+      <div class="sidebar-head">
+        <h2>Подключение камер</h2>
+        <p id="selected-count">Выбрана 1 камера</p>
+      </div>
+      <div id="camera-list" class="camera-list"></div>
+      <div class="sidebar-action">
+        <button id="connect-button" class="action primary" type="button">Подключить все камеры</button>
+        <button id="disconnect-button" class="action secondary" type="button" disabled>Отключить все камеры</button>
+        <p id="connect-message" aria-live="polite">Статусы соединений видны на любой вкладке.</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <nav class="tabs" role="tablist" aria-label="Разделы программы">
+        <button class="tab" id="process-tab" role="tab" aria-selected="true" aria-controls="process" type="button">Текущий процесс</button>
+        <button class="tab" id="history-tab" role="tab" aria-selected="false" aria-controls="history" type="button">История</button>
+        <button class="tab" id="journal-tab" role="tab" aria-selected="false" aria-controls="journal" type="button">Журнал</button>
+        <button class="tab" id="settings-tab" role="tab" aria-selected="false" aria-controls="settings" type="button">Настройки</button>
+      </nav>
+
+      <section id="process" role="tabpanel" aria-labelledby="process-tab">
+        <section class="frame cycle-frame">
+          <div class="frame-title"><h2>Текущий цикл</h2><span id="last-kind" class="tag pending">Ожидание</span></div>
+          <div class="hero">
+            <div>
+              <div id="last-source" class="eyebrow">Цикл ещё не начат</div>
+              <h1 id="last-summary">Ожидание первого кода</h1>
+              <p id="last-detail">Таймер запустится после первого корректного кода.</p>
+            </div>
+            <div class="timer"><div class="eyebrow">До завершения</div><div id="last-time" class="message-time">—</div><p id="cycle-window-note">Окно не запущено</p></div>
+          </div>
+          <div class="current-results">
+            <div class="subheading"><h3>Коды текущего цикла</h3><span id="last-count">Получено 0</span></div>
+            <div id="last-empty" class="empty-state">Таблица заполнится после первого корректного кода.</div>
+            <div id="last-table" class="table-scroll" hidden><table><thead><tr><th>ID</th><th>SN / сторона</th><th>Исходный A</th><th>Источник</th></tr></thead><tbody id="last-table-body"></tbody></table></div>
+          </div>
+        </section>
+        <section class="frame plc-frame">
+          <div class="frame-title"><h2>Строки для ПЛК</h2><span class="tag pending">Не реализовано</span></div>
+          <div class="plc-body"><pre aria-label="Строки для ПЛК">—</pre><p>Формирование строк — следующий этап. TCP-обмен с ПЛК пока не реализован.</p></div>
+        </section>
+      </section>
+
+      <section id="history" role="tabpanel" aria-labelledby="history-tab" hidden>
+        <div class="page-heading"><div><h1>История считывания</h1><p>Последние 10 корректно разобранных QR-наблюдений · новые сверху</p></div></div>
+        <section class="frame">
+          <div class="frame-title"><h2>Данные, полученные от камер</h2><span class="tag">Каждое наблюдение</span></div>
+          <div id="history-empty" class="empty-state large">Распарсенных записей пока нет.</div>
+          <div id="history-table" class="table-scroll" hidden><table><thead><tr><th>Время</th><th>Камера</th><th>ID</th><th>SN / сторона</th><th>A</th><th>X</th><th>Y</th></tr></thead><tbody id="history-table-body"></tbody></table></div>
+          <div class="table-note">Повторные ID сохраняются. NoRead и ошибочные сообщения в эту историю не добавляются.</div>
+        </section>
+      </section>
+
+      <section id="journal" role="tabpanel" aria-labelledby="journal-tab" hidden>
+        <div class="page-heading"><div><h1>Журнал сообщений</h1><p>Входящие чтения TCP и события соединений · последние 200 событий в памяти</p></div></div>
+        <section class="frame">
+          <div class="frame-title"><h2>События</h2><span class="tag">Опрос каждые 0,5 с</span></div>
+          <div class="journal-note">Одна строка «Входящие данные» соответствует одному чтению TCP. Одно сообщение камеры может быть разделено на несколько чтений, а несколько сообщений — объединены в одно.</div>
+          <div class="log-header" aria-hidden="true"><span>Время</span><span>Источник</span><span>Вид</span><span>Содержимое</span></div>
+          <div id="log-list" class="log-list" aria-live="polite"><div class="empty-state">Журнал пуст.</div></div>
+        </section>
+      </section>
+
+      <section id="settings" role="tabpanel" aria-labelledby="settings-tab" hidden>
+        <div class="page-heading"><div><h1>Настройки</h1><p>Параметры процесса и адреса всех четырёх камер</p></div><span id="dirty-marker" class="unsaved" hidden>Есть несохранённые изменения</span></div>
+        <form id="settings-form" novalidate>
+          <div class="settings-layout">
+            <section class="frame">
+              <div class="frame-title"><h2>Параметры процесса</h2></div>
+              <div class="fields">
+                <label class="field">Количество камер
+                  <select id="camera-count" name="camera_count"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+                </label>
+                <label class="field">Ожидаемое количество кодов
+                  <select id="expected-codes" name="expected_codes"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+                  <span class="help">Уникальные ID суммарно по выбранным камерам. Изменение применяется к следующему циклу.</span>
+                </label>
+                <label class="field">Окно сбора, с
+                  <input id="collection-window" name="collection_window" type="number" min="0.001" step="0.1" required>
+                  <span class="help">Фиксированное окно от первого кода. Изменение применяется к следующему циклу.</span>
+                </label>
+              </div>
+            </section>
+            <section class="frame">
+              <div class="frame-title"><h2>Адреса камер</h2><span class="tag">TCP</span></div>
+              <div id="camera-settings"></div>
+            </section>
+          </div>
+          <div class="settings-foot">
+            <button class="action primary" type="submit">Сохранить настройки</button>
+            <p id="save-message" aria-live="polite">Подключение использует текущие поля, даже если они ещё не сохранены.</p>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <footer class="bottom"><span>Hikrobot · Контроль кодов</span><span>Этап 3 · общий цикл и проверка результата</span></footer>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
